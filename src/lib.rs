@@ -49,15 +49,22 @@ impl Scaler {
         }
         let cols = data[0].len();
         if data.iter().any(|r| r.len() != cols) {
-            return Err(MlError::DimensionMismatch { expected: cols, got: data.iter().map(|r| r.len()).max().unwrap_or(0) });
+            return Err(MlError::DimensionMismatch {
+                expected: cols,
+                got: data.iter().map(|r| r.len()).max().unwrap_or(0),
+            });
         }
         let n = data.len() as f64;
         let mut means = vec![0.0; cols];
         let mut stds = vec![0.0; cols];
         for row in data {
-            for (j, &v) in row.iter().enumerate() { means[j] += v; }
+            for (j, &v) in row.iter().enumerate() {
+                means[j] += v;
+            }
         }
-        for m in means.iter_mut() { *m /= n; }
+        for m in means.iter_mut() {
+            *m /= n;
+        }
         for row in data {
             for (j, &v) in row.iter().enumerate() {
                 let d = v - means[j];
@@ -66,7 +73,9 @@ impl Scaler {
         }
         for (j, s) in stds.iter_mut().enumerate() {
             *s = (*s / n).sqrt();
-            if *s < 1e-12 { *s = 1.0; } // constant feature → unit scale
+            if *s < 1e-12 {
+                *s = 1.0;
+            } // constant feature → unit scale
             let _ = j;
         }
         Ok(Self { means, stds })
@@ -74,7 +83,8 @@ impl Scaler {
 
     /// Transform one sample.
     pub fn transform(&self, row: &[f64]) -> Vec<f64> {
-        row.iter().enumerate()
+        row.iter()
+            .enumerate()
             .map(|(j, &v)| (v - self.means[j]) / self.stds[j])
             .collect()
     }
@@ -100,14 +110,23 @@ impl LinearRegression {
         l2: f64,
     ) -> Result<Self, MlError> {
         if x.len() != y.len() {
-            return Err(MlError::DimensionMismatch { expected: y.len(), got: x.len() });
+            return Err(MlError::DimensionMismatch {
+                expected: y.len(),
+                got: x.len(),
+            });
         }
         if x.len() < 2 {
-            return Err(MlError::InsufficientData { need: 2, got: x.len() });
+            return Err(MlError::InsufficientData {
+                need: 2,
+                got: x.len(),
+            });
         }
         let features = x[0].len();
         if x.iter().any(|r| r.len() != features) {
-            return Err(MlError::DimensionMismatch { expected: features, got: x.iter().map(|r| r.len()).max().unwrap_or(0) });
+            return Err(MlError::DimensionMismatch {
+                expected: features,
+                got: x.iter().map(|r| r.len()).max().unwrap_or(0),
+            });
         }
         let mut w = vec![0.0; features + 1]; // +1 bias
         let n = x.len() as f64;
@@ -131,7 +150,9 @@ impl LinearRegression {
 
     fn predict_raw(w: &[f64], row: &[f64]) -> f64 {
         let mut s = w[w.len() - 1]; // bias
-        for (j, &v) in row.iter().enumerate() { s += w[j] * v; }
+        for (j, &v) in row.iter().enumerate() {
+            s += w[j] * v;
+        }
         s
     }
 
@@ -144,13 +165,23 @@ impl LinearRegression {
 /// Mean absolute error.
 pub fn mae(y_true: &[f64], y_pred: &[f64]) -> Result<f64, MlError> {
     check_len(y_true, y_pred)?;
-    Ok(y_true.iter().zip(y_pred).map(|(a, b)| (a - b).abs()).sum::<f64>() / y_true.len() as f64)
+    Ok(y_true
+        .iter()
+        .zip(y_pred)
+        .map(|(a, b)| (a - b).abs())
+        .sum::<f64>()
+        / y_true.len() as f64)
 }
 
 /// Root mean squared error.
 pub fn rmse(y_true: &[f64], y_pred: &[f64]) -> Result<f64, MlError> {
     check_len(y_true, y_pred)?;
-    let mse = y_true.iter().zip(y_pred).map(|(a, b)| (a - b) * (a - b)).sum::<f64>() / y_true.len() as f64;
+    let mse = y_true
+        .iter()
+        .zip(y_pred)
+        .map(|(a, b)| (a - b) * (a - b))
+        .sum::<f64>()
+        / y_true.len() as f64;
     Ok(mse.sqrt())
 }
 
@@ -159,14 +190,23 @@ pub fn r2_score(y_true: &[f64], y_pred: &[f64]) -> Result<f64, MlError> {
     check_len(y_true, y_pred)?;
     let mean = y_true.iter().sum::<f64>() / y_true.len() as f64;
     let ss_tot: f64 = y_true.iter().map(|y| (y - mean) * (y - mean)).sum();
-    let ss_res: f64 = y_true.iter().zip(y_pred).map(|(a, b)| (a - b) * (a - b)).sum();
-    if ss_tot == 0.0 { return Err(MlError::Numerical("zero total variance".into())); }
+    let ss_res: f64 = y_true
+        .iter()
+        .zip(y_pred)
+        .map(|(a, b)| (a - b) * (a - b))
+        .sum();
+    if ss_tot == 0.0 {
+        return Err(MlError::Numerical("zero total variance".into()));
+    }
     Ok(1.0 - ss_res / ss_tot)
 }
 
 fn check_len(a: &[f64], b: &[f64]) -> Result<(), MlError> {
     if a.len() != b.len() {
-        return Err(MlError::DimensionMismatch { expected: a.len(), got: b.len() });
+        return Err(MlError::DimensionMismatch {
+            expected: a.len(),
+            got: b.len(),
+        });
     }
     Ok(())
 }
