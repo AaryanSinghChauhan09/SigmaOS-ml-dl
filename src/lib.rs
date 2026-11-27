@@ -233,4 +233,64 @@ mod tests {
     fn rejects_bad_dims() {
         assert!(LinearRegression::train(&[vec![1.0]], &[1.0, 2.0], 0.1, 1, 0.0).is_err());
     }
+
+    #[test]
+    fn test_scaler_rejects_empty_and_ragged_inputs_aaa() {
+        // Arrange
+        let empty: Vec<Vec<f64>> = vec![];
+        let ragged = vec![vec![1.0, 2.0], vec![3.0]];
+
+        // Act
+        let empty_res = Scaler::fit(&empty);
+        let ragged_res = Scaler::fit(&ragged);
+
+        // Assert
+        assert!(matches!(empty_res, Err(MlError::InsufficientData { .. })));
+        assert!(matches!(ragged_res, Err(MlError::DimensionMismatch { .. })));
+    }
+
+    #[test]
+    fn test_scaler_constant_feature_uses_unit_scale_aaa() {
+        // Arrange
+        let data = vec![vec![5.0, 1.0], vec![5.0, 3.0]];
+
+        // Act
+        let scaler = Scaler::fit(&data).unwrap();
+        let transformed = scaler.transform(&[5.0, 2.0]);
+
+        // Assert
+        assert!((transformed[0] - 0.0).abs() < 1e-12);
+        assert!((transformed[1] - 0.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_metrics_mae_and_r2_edge_cases_aaa() {
+        // Arrange
+        let y_true = [1.0, 2.0, 3.0];
+        let y_pred = [1.5, 2.0, 2.5];
+        let constant_y = [4.0, 4.0, 4.0];
+
+        // Act
+        let err_mae = mae(&y_true, &y_pred).unwrap();
+        let zero_var_r2 = r2_score(&constant_y, &y_pred);
+        let mismatch = rmse(&y_true, &[1.0]);
+
+        // Assert
+        assert!((err_mae - (1.0 / 3.0)).abs() < 1e-12);
+        assert!(matches!(zero_var_r2, Err(MlError::Numerical(_))));
+        assert!(matches!(mismatch, Err(MlError::DimensionMismatch { .. })));
+    }
+
+    #[test]
+    fn test_linear_regression_rejects_insufficient_samples_aaa() {
+        // Arrange
+        let x = vec![vec![1.0, 2.0]];
+        let y = vec![3.0];
+
+        // Act
+        let res = LinearRegression::train(&x, &y, 0.01, 10, 0.0);
+
+        // Assert
+        assert!(matches!(res, Err(MlError::InsufficientData { .. })));
+    }
 }
